@@ -142,7 +142,9 @@ ui =
     ]
 
   renderStep precision { result, total, shift, weight, oldFocus, focus } =
-    let w = 1000 in
+    let w = 1000
+        interval = focus.upperBound - focus.lowerBound
+    in
     [ mkBounds precision oldFocus
     , HH.div
       [ CSS.style do
@@ -160,7 +162,8 @@ ui =
                      ]
         , HP.title ("shift = " <> show shift <>
                     ", weight = " <> show weight <>
-                    ", total = " <> show total)
+                    ", total = " <> show total <>
+                    ", width = " <> show interval)
         ]
         [ HH.text $ case result of
              Chr code -> CP.singleton code
@@ -168,7 +171,7 @@ ui =
     if isEnd result
     then [ mkBounds precision focus
          , HH.div [ HP.id_ "width-container" ]
-           [ HH.text $ "width = " <> toFixed (focus.upperBound - focus.lowerBound) precision
+           [ HH.text $ "width = " <> toFixed interval precision
            ]
          ]
     else []
