@@ -1,0 +1,52 @@
+body {
+  font-family: sans-serif;
+  max-width: 1020px;
+  margin: auto;
+}
+.progress {
+  background-color: #999;
+  height: 25px;
+  color: white;
+  font-size: 20px;
+  text-align: center;
+}
+.one-line {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.progress-active {
+  background-color: blue;
+}
+.lower-bound, .upper-bound {
+  max-width: 480px;
+  widht: 480px;
+  overflow: hidden;
+  display: inline-block;
+}
+.upper-bound {
+  float: right;
+}
+.result {
+  text-aling: center;
+  font-size: 20px;
+  color: #333;
+  word-wrap: break-word;
+}
+.input {
+  margin: 5px;
+  width: 500px;
+}
+#container {
+  max-height: 600px;
+  overflow-y: auto;
+}
+#width-container {
+  overflow: hidden;
+}
+#bounds-container {
+  max-width: 1000px;
+}
+label {
+  margin-left: 5px;
+  margin-right: 5px;
+}

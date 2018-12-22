@@ -1,0 +1,29 @@
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Arithmetic coding</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <p>
+      This application (<a href="https://github.com/8084/arithmetic-coding" target="_blank">source code</a>) demonstates the principle behind <a href="https://en.wikipedia.org/wiki/Arithmetic_coding" target="_blank">arithmetic coding</a>.
+    </p>
+    <p>
+      Note that character weights are rebalanced so that their sum is always a power of two. This allows performing division without dealing with decimal repetends. Also, alphabet is extended with the "epsilon" character, which is used as an "EOF-indicator".
+    </p>
+    <p>
+      Turn on "Auto" checkbox below to see the result as you type.
+    </p>
+    <p>
+      Toggle "Adaptive" checkbox to see how the output (escpecially width of the last interval) changes when there are many equal characters in the input. When this option is on, after each step the recent character's weight is increased by one.
+    </p>
+    <p>
+      Precision setting determines how many decimal places to print in the output. It does not affect the internal representation of numeric values. This app should be able to process numbers with <a href="http://mikemcl.github.io/big.js/#dp" target="_blank">up to 1 000 000</a> decimal places, however, due to low performance and high memory consumption it is practically impossible to hit the limits.
+    </p>
+    <p>
+      Hover on blue character boxes to see additional info at point.
+    </p>
+    <script src="app.js"></script>
+  </body>
+</html>

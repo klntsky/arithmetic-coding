@@ -1,0 +1,15 @@
+{
+  "name": "mine",
+  "set": "local",
+  "source": "",
+  "depends": [
+    "assert",
+    "console",
+    "css",
+    "decimals",
+    "halogen",
+    "halogen-css",
+    "prelude",
+    "psci-support"
+  ]
+}
