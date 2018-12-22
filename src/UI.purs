@@ -4,7 +4,7 @@ import ArithmeticCoding
 import ArithmeticCoding.Chr
 
 import Prelude ( type (~>), Unit, bind, const, discard, flip, map, pure, show
-               , when, zero, ($), (*), (/), (<<<), (<>), (-))
+               , when, zero, ($), (*), (/), (<<<), (<>), (-), (==))
 import Data.Big (Big, toFixed)
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
 import Data.Array as A
@@ -27,6 +27,7 @@ type State = { input :: String
              , precision :: Int
              , steps :: List (StepInfo (Chr CodePoint))
              , result :: Maybe Big
+             , success :: Boolean
              , auto :: Boolean
              , adaptive :: Boolean }
 
@@ -54,82 +55,94 @@ ui =
 
   initialState :: State
   initialState = { input: "we conjure the spirits of the computer with our spells"
-                 , alphabet: "abcdefghijklmnopqrstuvwxyz "
+                 , alphabet: " abcdefghijklmnopqrstuvwxyz"
                  , precision: 1000
                  , steps: Nil
                  , result: Just zero
+                 , success: true
                  , auto: false
                  , adaptive: false }
 
   render :: State -> H.ComponentHTML Query
-  render { input, alphabet, precision, result, steps } =
-     HH.div_ $
-       [ HH.text "Alphabet:"
-       , HH.br_
-       , HH.input
-         [ HP.type_ HP.InputText
-         , HP.value alphabet
-         , HP.classes [ HH.ClassName "input" ]
-         , HP.id_ "alphabet"
-         , HE.onValueInput $ HE.input UpdateAlphabet
-         ]
-       , HH.br_
+  render { input, alphabet, precision, result, success, steps } =
+    HH.div_
+    [ HH.text "Alphabet:"
+    , HH.br_
+    , HH.input
+      [ HP.type_ HP.InputText
+      , HP.value alphabet
+      , HP.classes [ HH.ClassName "input" ]
+      , HP.id_ "alphabet"
+      , HE.onValueInput $ HE.input UpdateAlphabet
+      ]
+    , HH.br_
 
-       , HH.text "Input:"
-       , HH.br_
-       , HH.textarea
-         [ HP.value input
-         , HP.classes [ HH.ClassName "input" ]
-         , HP.id_ "input"
-         , HE.onValueInput $ HE.input UpdateInputText
-         ]
-       , HH.br_
+    , HH.text "Input:"
+    , HH.br_
+    , HH.textarea
+      [ HP.value input
+      , HP.classes [ HH.ClassName "input" ]
+      , HP.id_ "input"
+      , HE.onValueInput $ HE.input UpdateInputText
+      ]
+    , HH.br_
 
-       , HH.button
-         [ HP.title "Calculate result value and render output"
-         , HE.onClick $ HE.input_ ProcessInput
-         ]
-         [ HH.text "Encode & decode" ]
+    , HH.button
+      [ HP.title "Calculate result value and render output"
+      , HE.onClick $ HE.input_ ProcessInput
+      ]
+      [ HH.text "Encode & decode" ]
 
-         -- [ ] Auto
-       , HH.span
-         [ HP.title "Re-render output while typing (use with care)" ]
-         [ HH.input [ HP.type_ HP.InputCheckbox
-                    , HP.checked false
-                    , HE.onChecked $ HE.input ToggleAuto
-                    , HP.id_ "auto" ]
-         , HH.label [ HP.for "auto" ] [ HH.text "Auto" ]
-         ]
+      -- [ ] Auto
+    , HH.span
+      [ HP.title "Re-render output while typing (use with care)" ]
+      [ HH.input [ HP.type_ HP.InputCheckbox
+                 , HP.checked false
+                 , HE.onChecked $ HE.input ToggleAuto
+                 , HP.id_ "auto" ]
+      , HH.label [ HP.for "auto" ] [ HH.text "Auto" ]
+      ]
 
-         -- [ ] Adaptive
-       , HH.span
-         [ HP.title "Rebalance weights to promote characters that appear more frequently than the others"  ]
-         [ HH.input [ HP.type_ HP.InputCheckbox
-                    , HP.checked false
-                    , HE.onChecked $ HE.input ToggleAdaptive
-                    , HP.id_ "adaptive" ]
-         , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
-         ]
+      -- [ ] Adaptive
+    , HH.span
+      [ HP.title "Rebalance weights to promote characters that appear more frequently than the others"  ]
+      [ HH.input [ HP.type_ HP.InputCheckbox
+                 , HP.checked false
+                 , HE.onChecked $ HE.input ToggleAdaptive
+                 , HP.id_ "adaptive" ]
+      , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
+      ]
 
-         -- Precision: [   ]
-       , HH.span
-         [ HP.title "Precision only affects how numbers are printed"  ]
-         [ HH.label_ [ HH.text "Precision: " ]
-         , HH.input [ HP.type_ HP.InputNumber
-                    , HP.value "1000"
-                    , HE.onValueInput $ HE.input UpdatePrecision ]
-         ]
+      -- Precision: [   ]
+    , HH.span
+      [ HP.title "Precision only affects how numbers are printed"  ]
+      [ HH.label_ [ HH.text "Precision: " ]
+      , HH.input [ HP.type_ HP.InputNumber
+                 , HP.value "1000"
+                 , HE.onValueInput $ HE.input UpdatePrecision ]
+      ]
 
-       , HH.div_ $ case result of
-           Just result' ->
-             [ HH.span [ HP.class_ $ HH.ClassName "result" ]
-               [ HH.text $ "Result: " <> toFixed result' precision ]
-             , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
-               map (HH.div_ <<< renderStep precision) steps
-             ]
-           Nothing ->
-             [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
-       ]
+    , HH.div_ $ case result of
+        Just result' ->
+          [ HH.span [ HP.class_ $ HH.ClassName "result" ]
+            [ HH.text $ "Result "
+            , HH.span
+              [ HP.class_ $ HH.ClassName $
+                if success
+                then "status-success"
+                else "status-fail"
+              , HP.title $ "This box indicates whether the input is equal to the decoded output" ]
+              [ HH.text $
+                if success
+                then "[OK]: "
+                else "[FAIL] (please report as bug): "]
+            , HH.text $ toFixed result' precision ]
+          , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
+            map (HH.div_ <<< renderStep precision) steps
+          ]
+        Nothing ->
+          [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
+    ]
 
 
   mkBounds precision { lowerBound, upperBound } =
@@ -219,6 +232,8 @@ eval = case _ of
             result :: Big
             result = average $ encodeWithFocus adapt focus input'
             steps = unsafePartial $ decodeSteps adapt isEnd result focus
-        H.modify_ (_ { result = Just result, steps = steps })
+            success :: Boolean
+            success = A.fromFoldable (map _.result steps) == input'
+        H.modify_ (_ { result = Just result, steps = steps, success = success })
         else do
         H.modify_ (_ { result = Nothing, steps = Nil })

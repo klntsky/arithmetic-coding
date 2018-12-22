@@ -9,6 +9,7 @@ module ArithmeticCoding.Chr
        ( Chr (..)
        , isEnd
        , wrap
+       , unwrap
        )
 where
 
@@ -19,6 +20,10 @@ import Data.Show (class Show, show)
 import Data.Semigroup (class Semigroup, (<>))
 import Control.Applicative (class Applicative, pure)
 import Data.Functor (class Functor, map)
+import Data.Monoid (class Monoid, mempty)
+import Data.Foldable (class Foldable, foldMap)
+import Data.Maybe (Maybe)
+import Data.Tuple (Tuple)
 
 
 data Chr a = Chr a | End
@@ -47,3 +52,11 @@ isEnd _   = false
 wrap :: forall f a. Applicative f => Semigroup (f (Chr a)) =>
              f a -> f (Chr a)
 wrap f = map Chr f <> pure End
+
+
+unwrap :: forall f a. Foldable f => Monoid (f a) => Applicative f =>
+          f (Chr a) -> f a
+unwrap = foldMap go
+  where
+    go End = mempty
+    go (Chr a) = pure a

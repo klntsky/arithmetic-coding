@@ -12,10 +12,10 @@ module ArithmeticCoding
 import ArithmeticCoding.Chr (Chr(..), isEnd)
 import Data.Big (Big, divide, fromInt)
 
-import Prelude ( class Ord, class Semigroup, class Applicative
+import Prelude ( class Ord
                , Unit
-               , const, identity, map, one, pure, otherwise, when, whenM, zero, bind, discard
-               , ($), (&&), (*), (+), (-), (<), (<$>), (<>), (<<<), (<=), (>=), (>>=))
+               , const, identity, map, one, otherwise, when, whenM, zero, bind, discard
+               , ($), (&&), (*), (+), (-), (<), (<$>), (<<<), (<=), (>=), (>>=))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (StateT, evalStateT, execStateT, get, modify_, put)
