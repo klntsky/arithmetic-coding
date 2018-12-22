@@ -1,6 +1,7 @@
 module UI where
 
 import ArithmeticCoding
+import ArithmeticCoding.Chr
 
 import Prelude ( type (~>), Unit, bind, const, discard, flip, map, pure, show
                , when, zero, ($), (*), (/), (<<<), (<>), (-))
@@ -61,32 +62,32 @@ ui =
                  , adaptive: false }
 
   render :: State -> H.ComponentHTML Query
-  render state =
+  render { input, alphabet, precision, result, steps } =
      HH.div_ $
        [ HH.text "Alphabet:"
        , HH.br_
        , HH.input
          [ HP.type_ HP.InputText
-         , HP.value (state.alphabet)
+         , HP.value alphabet
          , HP.classes [ HH.ClassName "input" ]
          , HP.id_ "alphabet"
-         , HE.onValueInput (HE.input UpdateAlphabet)
+         , HE.onValueInput $ HE.input UpdateAlphabet
          ]
        , HH.br_
 
        , HH.text "Input:"
        , HH.br_
        , HH.textarea
-         [ HP.value (state.input)
+         [ HP.value input
          , HP.classes [ HH.ClassName "input" ]
          , HP.id_ "input"
-         , HE.onValueInput (HE.input UpdateInputText)
+         , HE.onValueInput $ HE.input UpdateInputText
          ]
        , HH.br_
 
        , HH.button
          [ HP.title "Calculate result value and render output"
-         , HE.onClick (HE.input_ ProcessInput)
+         , HE.onClick $ HE.input_ ProcessInput
          ]
          [ HH.text "Encode & decode" ]
 
@@ -95,7 +96,7 @@ ui =
          [ HP.title "Re-render output while typing (use with care)" ]
          [ HH.input [ HP.type_ HP.InputCheckbox
                     , HP.checked false
-                    , HE.onChecked (HE.input ToggleAuto)
+                    , HE.onChecked $ HE.input ToggleAuto
                     , HP.id_ "auto" ]
          , HH.label [ HP.for "auto" ] [ HH.text "Auto" ]
          ]
@@ -105,11 +106,10 @@ ui =
          [ HP.title "Rebalance weights to promote characters that appear more frequently than the others"  ]
          [ HH.input [ HP.type_ HP.InputCheckbox
                     , HP.checked false
-                    , HE.onChecked (HE.input ToggleAdaptive)
+                    , HE.onChecked $ HE.input ToggleAdaptive
                     , HP.id_ "adaptive" ]
          , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
          ]
-
 
          -- Precision: [   ]
        , HH.span
@@ -117,16 +117,15 @@ ui =
          [ HH.label_ [ HH.text "Precision: " ]
          , HH.input [ HP.type_ HP.InputNumber
                     , HP.value "1000"
-                    , HE.onValueInput (HE.input UpdatePrecision) ]
+                    , HE.onValueInput $ HE.input UpdatePrecision ]
          ]
 
-
-       , HH.div_ $ case state.result of
+       , HH.div_ $ case result of
            Just result' ->
              [ HH.span [ HP.class_ $ HH.ClassName "result" ]
-               [ HH.text $ "Result: " <> toFixed result' state.precision ]
+               [ HH.text $ "Result: " <> toFixed result' precision ]
              , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
-               map (HH.div_ <<< renderStep state.precision) state.steps
+               map (HH.div_ <<< renderStep precision) steps
              ]
            Nothing ->
              [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
@@ -207,11 +206,11 @@ eval = case _ of
     pure next
   where
     processInput = do
-      state <- H.get
-      let alphabet' = normalize $ A.nub $ toCodePointArray state.alphabet
-          input' = normalize $ toCodePointArray state.input
+      { input, alphabet, adaptive } <- H.get
+      let alphabet' = wrap $ A.nub $ toCodePointArray alphabet
+          input' = wrap $ toCodePointArray input
           isValid = all (flip elem alphabet') input'
-          adapt = if state.adaptive then increaseWeight else noAdaptation
+          adapt = if adaptive then increaseWeight else noAdaptation
       if isValid then do
         let focus = mkFocus alphabet'
             result :: Big

@@ -8,6 +8,7 @@
 module ArithmeticCoding.Chr
        ( Chr (..)
        , isEnd
+       , wrap
        )
 where
 
@@ -15,7 +16,10 @@ import Data.Eq (class Eq)
 import Data.Ord (class Ord, compare)
 import Data.Ordering (Ordering (..))
 import Data.Show (class Show, show)
-import Data.Semigroup ((<>))
+import Data.Semigroup (class Semigroup, (<>))
+import Control.Applicative (class Applicative, pure)
+import Data.Functor (class Functor, map)
+
 
 data Chr a = Chr a | End
 
@@ -35,3 +39,11 @@ instance ordChr :: Ord a => Ord (Chr a) where
 isEnd :: forall a. Chr a -> Boolean
 isEnd End = true
 isEnd _   = false
+
+
+-- | Add the End character to the end.
+-- |
+-- | E.g. @wrap [1,2,3] = [Chr 1, Chr 2, Chr 3, End]@
+wrap :: forall f a. Applicative f => Semigroup (f (Chr a)) =>
+             f a -> f (Chr a)
+wrap f = map Chr f <> pure End

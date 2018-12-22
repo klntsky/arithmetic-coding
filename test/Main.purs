@@ -1,9 +1,12 @@
 module Test.Main where
 
+import ArithmeticCoding
+import ArithmeticCoding.Chr
+import Data.Big
+
 import Prelude
 import Effect (Effect)
 import Effect.Console (log)
-import ArithmeticCoding
 import Test.Assert
 import Data.Traversable
 import Data.Foldable
@@ -12,7 +15,6 @@ import Data.Tuple
 import Data.Array
 import Data.String
 import Partial.Unsafe
-import Data.Big
 
 
 main :: Effect Unit
@@ -54,11 +56,11 @@ main = do
 
 withAlphabet :: String -> Array String -> Effect Unit
 withAlphabet alphabet' inputs = do
-  let alphabet = normalize $ nub $ toCodePointArray alphabet'
+  let alphabet = wrap $ nub $ toCodePointArray alphabet'
       focus = mkFocus alphabet
   for_ [noAdaptation, increaseWeight] $ \adapt -> do
     for_ inputs $ \input' -> do
-      let input = normalize $ toCodePointArray input'
+      let input = wrap $ toCodePointArray input'
           result :: Big
           result = average $ encodeWithFocus adapt focus input
           output = fromFoldable $ unsafePartial $ decode adapt isEnd result focus

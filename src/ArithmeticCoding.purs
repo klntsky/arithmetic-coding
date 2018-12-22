@@ -4,7 +4,7 @@ module ArithmeticCoding
        , Adaptation
        , StepInfo
        , mkFocus, noAdaptation, increaseWeight, step, encode, encodeWithFocus, average
-       , decode, decodeSteps, normalize, rebalance, nearestPowerOf2
+       , decode, decodeSteps, rebalance, nearestPowerOf2
        , module ArithmeticCoding.Chr
        )
        where
@@ -12,14 +12,14 @@ module ArithmeticCoding
 import ArithmeticCoding.Chr (Chr(..), isEnd)
 import Data.Big (Big, divide, fromInt)
 
-import Prelude ( class Functor, class Ord, class Semigroup, Unit
-               , append, bind, const, discard, identity, map, one
-               , when, whenM, zero, ($), (&&), (*), (+), (-), (<), (<$>)
-               , (<<<), (<=), (>=), (>>=), otherwise)
+import Prelude ( class Ord, class Semigroup, class Applicative
+               , Unit
+               , const, identity, map, one, pure, otherwise, when, whenM, zero, bind, discard
+               , ($), (&&), (*), (+), (-), (<), (<$>), (<>), (<<<), (<=), (>=), (>>=))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (StateT, evalStateT, execStateT, get, modify_, put)
-import Data.Decimal as D -- (toNumber, log2, fromInt)
+import Data.Decimal as D
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldl, sum)
 import Data.Int (ceil, pow)
@@ -30,7 +30,6 @@ import Data.Profunctor.Choice ((|||))
 import Data.Profunctor.Strong ((***))
 import Data.Traversable (for_)
 import Data.Tuple (Tuple(..), snd, fst)
-import Data.Unfoldable (class Unfoldable, replicate)
 import Partial.Unsafe (unsafePartial)
 
 
@@ -204,13 +203,6 @@ rebalance d w | isEmpty w = w
           modify_ (insert k (v + 1) *** (_ - 1))
           whenM isDone do
             get >>= throwError
-
-
--- | E.g. @normalize [1,2,3] = [Chr 1, Chr 2, Chr 3, End]@
-normalize :: forall f a. Foldable f => Functor f =>
-             Unfoldable f => Semigroup (f (Chr a)) =>
-             f a -> f (Chr a)
-normalize f = map Chr f `append` replicate 1 End
 
 
 -- | 'Adaptation' that does nothing.
