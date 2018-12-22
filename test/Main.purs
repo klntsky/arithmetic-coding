@@ -63,5 +63,5 @@ withAlphabet alphabet' inputs = do
           result = average $ encodeWithFocus adapt focus input
           output = fromFoldable $ unsafePartial $ decode adapt isEnd result focus
       assert'
-        ("failed for in " <> input' <> " in alphabet " <> alphabet')
+        ("failed for input " <> show input' <> " in alphabet " <> show alphabet')
         (input == output)

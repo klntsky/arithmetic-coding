@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "pulp --psc-package browserify -O --to dist/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "pulp --psc-package test"
   },
   "author": "",
   "license": "ISC",
