@@ -29,7 +29,8 @@ type State = { input :: String
              , result :: Maybe Big
              , success :: Boolean
              , auto :: Boolean
-             , adaptive :: Boolean }
+             , adaptive :: Boolean
+             , initialized :: Boolean }
 
 
 data Query a
@@ -61,11 +62,12 @@ ui =
                  , result: Just zero
                  , success: true
                  , auto: false
-                 , adaptive: false }
+                 , adaptive: false
+                 , initialized: false }
 
   render :: State -> H.ComponentHTML Query
-  render { input, alphabet, precision, result, success, steps } =
-    HH.div_
+  render { input, alphabet, precision, result, success, steps, initialized } =
+    HH.div_ $
     [ HH.text "Alphabet:"
     , HH.br_
     , HH.input
@@ -121,28 +123,28 @@ ui =
                  , HP.value "1000"
                  , HE.onValueInput $ HE.input UpdatePrecision ]
       ]
-
-    , HH.div_ $ case result of
-        Just result' ->
-          [ HH.span [ HP.class_ $ HH.ClassName "result" ]
-            [ HH.text $ "Result "
-            , HH.span
-              [ HP.class_ $ HH.ClassName $
-                if success
-                then "status-success"
-                else "status-fail"
-              , HP.title $ "This box indicates whether the input is equal to the decoded output" ]
-              [ HH.text $
-                if success
-                then "[OK]: "
-                else "[FAIL] (please report as bug): "]
-            , HH.text $ toFixed result' precision ]
-          , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
-            map (HH.div_ <<< renderStep precision) steps
-          ]
-        Nothing ->
-          [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
-    ]
+    ] <> if initialized then [
+      HH.div_ $ case result of
+         Just result' ->
+           [ HH.span [ HP.class_ $ HH.ClassName "result" ]
+             [ HH.text $ "Result "
+             , HH.span
+               [ HP.class_ $ HH.ClassName $
+                 if success
+                 then "status-success"
+                 else "status-fail"
+               , HP.title $ "This box indicates whether the input is equal to the decoded output" ]
+               [ HH.text $
+                 if success
+                 then "[OK]: "
+                 else "[FAIL] (please report as bug): "]
+             , HH.text $ toFixed result' precision ]
+           , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
+             map (HH.div_ <<< renderStep precision) steps
+           ]
+         Nothing ->
+           [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
+      ] else []
 
 
   mkBounds precision { lowerBound, upperBound } =
@@ -222,6 +224,7 @@ eval = case _ of
     pure next
   where
     processInput = do
+      H.modify_ (_ { initialized = true })
       { input, alphabet, adaptive } <- H.get
       let alphabet' = wrap $ A.nub $ toCodePointArray alphabet
           input' = wrap $ toCodePointArray input
