@@ -63,7 +63,7 @@ withAlphabet alphabet' inputs = do
       let input = wrap $ toCodePointArray input'
           result :: Big
           result = average $ encodeWithFocus adapt focus input
-          output = fromFoldable $ unsafePartial $ decode adapt isEnd result focus
+          output = unsafePartial $ decode adapt isEnd result focus
       assert'
         ("failed for input " <> show input' <> " in alphabet " <> show alphabet')
         (input == output)

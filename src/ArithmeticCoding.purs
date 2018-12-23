@@ -12,10 +12,11 @@ module ArithmeticCoding
 import ArithmeticCoding.Chr (Chr(..), isEnd)
 import Data.Big (Big, divide, fromInt)
 
-import Prelude ( class Ord
+import Prelude ( class Ord, class Monoid, class Applicative, class Functor
                , Unit
-               , const, identity, map, one, otherwise, when, whenM, zero, bind, discard
-               , ($), (&&), (*), (+), (-), (<), (<$>), (<<<), (<=), (>=), (>>=))
+               , const, identity, map, one, otherwise, when, whenM, zero, bind
+               , discard, mempty, pure
+               , ($), (&&), (*), (+), (-), (<), (<$>), (<<<), (<=), (>=), (>>=), (<>))
 import Control.Monad.Except (Except, runExcept, throwError)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (StateT, evalStateT, execStateT, get, modify_, put)
@@ -23,7 +24,7 @@ import Data.Decimal as D
 import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldl, sum)
 import Data.Int (ceil, pow)
-import Data.List (List(..))
+import Data.List (List)
 import Data.Map (Map, empty, insert, lookup, submap, toUnfoldable, update, isEmpty)
 import Data.Maybe (Maybe(..), fromJust)
 import Data.Profunctor.Choice ((|||))
@@ -134,24 +135,29 @@ average { lowerBound, upperBound } =
 
 
 -- | Opposite of 'encode'.
-decode :: forall char. Partial => Ord char =>
+decode :: forall l char. Partial => Ord char =>
+          Functor l => Monoid (l (StepInfo char)) => Applicative l =>
           Adaptation char -> StopCondition char -> Big -> Focus char ->
-          List char
+          l char
 decode adapt condition n = map _.result <<< decodeSteps adapt condition n
 
 
 -- | Provides additional information about each step of decoding.
-decodeSteps :: forall char. Partial => Ord char =>
-           Adaptation char -> StopCondition char -> Big -> Focus char ->
-           List (StepInfo char)
-decodeSteps adapt condition n = go
+decodeSteps :: forall l char. Partial => Ord char =>
+               Monoid (l (StepInfo char)) => Applicative l =>
+               Adaptation char -> StopCondition char -> Big -> Focus char ->
+               l (StepInfo char)
+decodeSteps adapt condition n = go mempty
   where
-    go focus =
+    go :: l (StepInfo char) -> Focus char -> l (StepInfo char)
+    go r focus =
       case runExcept $ evalStateT (decodeStep adapt focus n) 0 of
-        Right _ -> Nil
-        Left si -> Cons si $ if condition si.result
-                             then Nil
-                             else go si.focus
+        Right _ -> r
+        Left stepInfo ->
+          let r' = r <> pure stepInfo in
+           if condition stepInfo.result
+           then r'
+           else go r' stepInfo.focus
 
 
 decodeStep :: forall char. Partial => Ord char =>
