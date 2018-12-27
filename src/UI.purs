@@ -5,10 +5,10 @@ import ArithmeticCoding.Chr
 
 import Prelude ( type (~>), Unit, bind, const, discard, flip, map, pure, show
                , when, zero, ($), (*), (/), (<<<), (<>), (-), (==))
-import Data.Big (Big, toFixed)
+import Data.Big (Big, toExact, fromString)
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
 import Data.Array as A
-import Data.Int (fromString, toNumber)
+import Data.Int (toNumber)
 import Data.List  (List(..), all, elem)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String (CodePoint, toCodePointArray)
@@ -24,7 +24,6 @@ import Partial.Unsafe (unsafePartial)
 
 type State = { input :: String
              , alphabet :: String
-             , precision :: Int
              , steps :: List (StepInfo (Chr CodePoint))
              , result :: Maybe Big
              , success :: Boolean
@@ -36,7 +35,6 @@ type State = { input :: String
 data Query a
   = UpdateInputText String a
   | UpdateAlphabet String a
-  | UpdatePrecision String a
   | ProcessInput a
   | ToggleAuto Boolean a
   | ToggleAdaptive Boolean a
@@ -57,7 +55,6 @@ ui =
   initialState :: State
   initialState = { input: "we conjure the spirits of the computer with our spells"
                  , alphabet: " abcdefghijklmnopqrstuvwxyz"
-                 , precision: 1000
                  , steps: Nil
                  , result: Just zero
                  , success: true
@@ -66,7 +63,7 @@ ui =
                  , initialized: false }
 
   render :: State -> H.ComponentHTML Query
-  render { input, alphabet, precision, result, success, steps, initialized } =
+  render { input, alphabet, result, success, steps, initialized } =
     HH.div_ $
     [ HH.text "Alphabet:"
     , HH.br_
@@ -115,14 +112,6 @@ ui =
       , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
       ]
 
-      -- Precision: [   ]
-    , HH.span
-      [ HP.title "Precision only affects how numbers are printed"  ]
-      [ HH.label_ [ HH.text "Precision: " ]
-      , HH.input [ HP.type_ HP.InputNumber
-                 , HP.value "1000"
-                 , HE.onValueInput $ HE.input UpdatePrecision ]
-      ]
     ] <> if initialized then [
       HH.div_ $ case result of
          Just result' ->
@@ -138,29 +127,29 @@ ui =
                  if success
                  then "[OK]: "
                  else "[FAIL] (please report as bug): "]
-             , HH.text $ toFixed result' precision ]
+             , HH.text $ toExact result' ]
            , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
-             map (HH.div_ <<< renderStep precision) steps
+             map (HH.div_ <<< renderStep) steps
            ]
          Nothing ->
            [ HH.br_, HH.text "Invalid input: some characters are not in alphabet!" ]
       ] else []
 
 
-  mkBounds precision { lowerBound, upperBound } =
+  mkBounds { lowerBound, upperBound } =
     HH.div [ HP.id_ "bounds-container" ]
     [ HH.div [ HP.classes [ HH.ClassName "one-line", HH.ClassName "lower-bound" ] ]
-      [ HH.text $ toFixed lowerBound precision ]
+      [ HH.text $ toExact lowerBound ]
 
     , HH.div [ HP.classes [ HH.ClassName "one-line", HH.ClassName "upper-bound" ] ]
-      [ HH.text $ toFixed upperBound precision ]
+      [ HH.text $ toExact upperBound ]
     ]
 
-  renderStep precision { result, total, shift, weight, oldFocus, focus } =
+  renderStep { result, total, shift, weight, oldFocus, focus } =
     let w = 1000
         interval = focus.upperBound - focus.lowerBound
     in
-    [ mkBounds precision oldFocus
+    [ mkBounds oldFocus
     , HH.div
       [ CSS.style do
            width (px (toNumber w))
@@ -184,9 +173,9 @@ ui =
              Chr code -> CP.singleton code
              End -> "ɛ" ] ] ] <>
     if isEnd result
-    then [ mkBounds precision focus
+    then [ mkBounds focus
          , HH.div [ HP.id_ "width-container" ]
-           [ HH.text $ "width = " <> toFixed interval precision
+           [ HH.text $ "width = " <> toExact interval
            ]
          ]
     else []
@@ -195,12 +184,6 @@ ui =
 
 eval :: forall m. Query ~> HC.ComponentDSL State Query Message m
 eval = case _ of
-  (UpdatePrecision text next) -> do
-    state <- H.get
-    H.modify_ (_ { precision = fromMaybe 1000 $ fromString text })
-    when state.auto processInput
-    pure next
-
   (UpdateInputText text next) -> do
     state <- H.get
     H.modify_ (_ { input = text })
@@ -233,7 +216,8 @@ eval = case _ of
       if isValid then do
         let focus = mkFocus alphabet'
             result :: Big
-            result = average $ encodeWithFocus adapt focus input'
+            result = fromMaybe zero $ fromString $ toExact $
+              average $ encodeWithFocus adapt focus input'
             steps = unsafePartial $ decodeSteps adapt isEnd result focus
             success :: Boolean
             success = A.fromFoldable (map _.result steps) == input'

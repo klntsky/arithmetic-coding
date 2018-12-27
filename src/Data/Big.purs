@@ -3,6 +3,7 @@ module Data.Big
        , fromString
        , divide
        , toFixed
+       , toExact
        , fromInt
        )
        where
@@ -31,6 +32,7 @@ foreign import mulI :: Fn2 Big Big Big
 foreign import oneI :: Big
 foreign import subtract :: Fn2 Big Big Big
 foreign import divideI :: Fn2 Big Big Foreign
+foreign import toExact :: Big -> String
 
 
 instance showBig :: Show Big where

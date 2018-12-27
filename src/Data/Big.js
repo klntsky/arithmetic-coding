@@ -52,3 +52,8 @@ exports.mulI = fn2('times');
 exports.oneI = new Big(1);
 exports.subtract = fn2('minus');
 exports.divideI = wrap(fn2('div'));
+exports.toExact = function (x) {
+    // Not very prudent, but it will go.
+    return x.toFixed(x.c.length + Math.abs(x.e))
+            .replace(/\.?0+$/, '');
+};
