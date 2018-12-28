@@ -5,7 +5,7 @@ import ArithmeticCoding.Chr
 
 import Prelude ( type (~>), Unit, bind, const, discard, flip, map, pure, show
                , when, zero, ($), (*), (/), (<<<), (<>), (-), (==))
-import Data.Big (Big, toExact, fromString)
+import Data.Big (Big, fromString)
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
 import Data.Array as A
 import Data.Int (toNumber)
@@ -127,7 +127,7 @@ ui =
                  if success
                  then "[OK]: "
                  else "[FAIL] (please report as bug): "]
-             , HH.text $ toExact result' ]
+             , HH.text $ show result' ]
            , HH.div [ HP.id_ "container" ] <<< A.fromFoldable $
              map (HH.div_ <<< renderStep) steps
            ]
@@ -139,10 +139,10 @@ ui =
   mkBounds { lowerBound, upperBound } =
     HH.div [ HP.id_ "bounds-container" ]
     [ HH.div [ HP.classes [ HH.ClassName "one-line", HH.ClassName "lower-bound" ] ]
-      [ HH.text $ toExact lowerBound ]
+      [ HH.text $ show lowerBound ]
 
     , HH.div [ HP.classes [ HH.ClassName "one-line", HH.ClassName "upper-bound" ] ]
-      [ HH.text $ toExact upperBound ]
+      [ HH.text $ show upperBound ]
     ]
 
   renderStep { result, total, shift, weight, oldFocus, focus } =
@@ -175,7 +175,7 @@ ui =
     if isEnd result
     then [ mkBounds focus
          , HH.div [ HP.id_ "width-container" ]
-           [ HH.text $ "width = " <> toExact interval
+           [ HH.text $ "width = " <> show interval
            ]
          ]
     else []
@@ -216,7 +216,7 @@ eval = case _ of
       if isValid then do
         let focus = mkFocus alphabet'
             result :: Big
-            result = fromMaybe zero $ fromString $ toExact $
+            result = fromMaybe zero $ fromString $ show $
               average $ encodeWithFocus adapt focus input'
             steps = unsafePartial $ decodeSteps adapt isEnd result focus
             success :: Boolean

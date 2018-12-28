@@ -1,6 +1,10 @@
 "use strict";
+
 var Big = require('big.js');
 Big.DP = 1e+6;
+Big.NE = -1e+6;
+Big.PE = 1e+6;
+Big.RM = 0;
 
 function wrap (f) {
     return function () {
@@ -30,7 +34,7 @@ exports.fromStringI = wrap(function (str) {
 });
 
 exports.toString = function (bd) {
-    return bd.toFixed(1000).replace(/\.?0+$/, '...');
+    return bd.toString();
 };
 
 exports.toFixedI = function (b, n) {
@@ -52,8 +56,3 @@ exports.mulI = fn2('times');
 exports.oneI = new Big(1);
 exports.subtract = fn2('minus');
 exports.divideI = wrap(fn2('div'));
-exports.toExact = function (x) {
-    // Not very prudent, but it will go.
-    return x.toFixed(x.c.length + Math.abs(x.e))
-            .replace(/\.?0+$/, '');
-};
