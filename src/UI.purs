@@ -2,29 +2,35 @@ module UI where
 
 import ArithmeticCoding
 import ArithmeticCoding.Chr
+import FileSaver
 import Halogen.FileInputComponent as FI
 
-import Prelude (class Eq, class Ord, type (~>), Unit, bind, const, discard, flip, join, map, pure, show, unit, when, zero, ($), (*), (-), (/), (<#>), (<<<), (<>), (==), (>=>), (>>=))
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
+import Data.Argonaut.Core (fromObject, toObject, stringify)
+import Data.Argonaut.Core as AC
+import Data.Argonaut.Parser (jsonParser)
 import Data.Array as A
 import Data.Big (Big, fromString)
+import Data.Either (hush)
 import Data.Int (toNumber)
 import Data.List (List(..), all, elem)
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.String (CodePoint, toCodePointArray)
+import Data.MediaType (MediaType(..))
+import Data.String (CodePoint, fromCodePointArray, toCodePointArray)
 import Data.String.CodePoints as CP
+import Data.Tuple (Tuple (..))
 import Effect.Aff (Aff)
+import Effect.Class (liftEffect)
+import Effect.Console (log)
+import Foreign.Object (lookup)
+import Foreign.Object as StrMap
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
-import Data.MediaType (MediaType(..))
-import Data.Argonaut.Parser (jsonParser)
-import Data.Argonaut.Core as AC
-import Data.Either (hush)
-import Foreign.Object (lookup)
+import Prelude (class Eq, class Ord, type (~>), Unit, bind, const, discard, flip, map, pure, show, unit, when, zero, ($), (*), (-), (/), (<<<), (<>), (==), (>=>))
 
 
 type State = { input :: String
@@ -44,6 +50,7 @@ data Query a
   | ToggleAuto Boolean a
   | ToggleAdaptive Boolean a
   | UpdateFileInput FI.Message a
+  | SaveToFile a
 
 
 data Slot = FileInputSlot
@@ -89,15 +96,6 @@ ui = H.parentComponent
     , HH.br_
 
     , HH.text "Input:"
-    , HH.slot FileInputSlot
-              (FI.component { componentId: "fileinput"
-                            , isBinary: false
-                            , prompt: "(or load from file)"
-                            , accept: MediaType ".txt"
-                            })
-              unit
-              (HE.input UpdateFileInput)
-
     , HH.br_
     , HH.textarea
       [ HP.value input
@@ -132,6 +130,28 @@ ui = H.parentComponent
                  , HE.onChecked $ HE.input ToggleAdaptive
                  , HP.id_ "adaptive" ]
       , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
+      ]
+
+    , HH.br_
+
+    , HH.label
+      [ HP.title "Calculate result value and save to file"
+      , HE.onClick $ HE.input_ SaveToFile
+      , HP.class_ $ HH.ClassName "file-buttons"
+      ]
+      [ HH.text "Save to file" ]
+    , HH.text " / "
+    , HH.label
+      [ HP.title "Load result from file"
+      , HP.class_ $ HH.ClassName "file-buttons" ]
+      [ HH.slot FileInputSlot
+                (FI.component { componentId: "fileinput"
+                              , isBinary: false
+                              , prompt: "Load from file"
+                              , accept: MediaType ".json"
+                              })
+                unit
+                (HE.input UpdateFileInput)
       ]
 
     ] <> if initialized then [
@@ -206,11 +226,38 @@ ui = H.parentComponent
   eval :: Query ~> H.ParentDSL State Query FI.Query Slot Message Aff
   eval = case _ of
     (UpdateFileInput (FI.FileLoaded { contents, name }) next) -> do
-      maybe (pure unit)
-            (\{ input, alphabet } -> do
-              H.modify_ (_ { input = input, alphabet = alphabet })
-              processInput)
+      let warn = liftEffect $ log "Incorrect file!"
+      maybe warn
+            (\{ output, alphabet, adaptive } -> do
+              case fromString output of
+                Nothing -> warn
+                Just result -> do
+                  -- restore input
+                  let alphabet' = wrap $ A.nub $ toCodePointArray alphabet
+                      focus = mkFocus alphabet'
+                      adapt = if adaptive then increaseWeight else noAdaptation
+                      steps :: List (StepInfo (Chr CodePoint))
+                      steps = unsafePartial $ decodeSteps adapt isEnd result focus
+                      input :: String
+                      input = fromCodePointArray $ unwrap $ A.fromFoldable $ map (_.result) steps
+                  H.modify_ (_ { input = input, alphabet = alphabet, adaptive = adaptive })
+                  processInput)
             (parse contents)
+      pure next
+    (SaveToFile next) -> do
+      processInput --  commit changes
+      state <- H.get
+      maybe (pure unit)
+            (\big -> do
+                -- construct and serialize a JSON object
+                let obj = fromObject $ StrMap.fromFoldable
+                          [ Tuple "output"   (AC.fromString (show big))
+                          , Tuple "alphabet" (AC.fromString state.alphabet)
+                          , Tuple "adaptive" (AC.fromBoolean state.adaptive)
+                          ]
+                liftEffect $ saveAsPlainText (show state.input <> ".json")
+                                             (stringify obj))
+            state.result
       pure next
     (UpdateInputText text next) -> do
       state <- H.get
@@ -234,15 +281,19 @@ ui = H.parentComponent
       processInput
       pure next
     where
-      parse :: String -> Maybe { input :: String, alphabet :: String }
+      parse :: String -> Maybe { output :: String
+                               , alphabet :: String
+                               , adaptive :: Boolean }
       parse str = do
         json <- hush (jsonParser str)
-        obj <- AC.toObject json
-        -- lookup key and convert to string inside Maybe
-        let getStrKey key = lookup key >=> AC.toString
-        input    <- getStrKey "input" obj
+        obj <- toObject json
+        -- lookup key and convert inside Maybe
+        let getStrKey     key = lookup key >=> AC.toString
+            getBooleanKey key = lookup key >=> AC.toBoolean
+        output   <- getStrKey "output"   obj
         alphabet <- getStrKey "alphabet" obj
-        pure { input, alphabet }
+        adaptive <- getBooleanKey "adaptive" obj
+        pure { output, alphabet, adaptive }
 
       processInput = do
         H.modify_ (_ { initialized = true })

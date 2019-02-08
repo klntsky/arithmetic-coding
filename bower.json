@@ -19,5 +19,7 @@
     "purescript-argonaut-core": "^4.0.1",
     "purescript-exceptions": "^4.0.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "file-saver": "^2.0.0"
+  }
 }
