@@ -20,6 +20,7 @@ import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
+import Effect.Aff
 
 
 type State = { input :: String
@@ -42,7 +43,7 @@ data Query a
 
 type Message = Unit
 
-ui :: forall m. H.Component HH.HTML Query Unit Message m
+ui :: H.Component HH.HTML Query Unit Message Aff
 ui =
   H.component
     { initialState: const initialState
@@ -181,46 +182,45 @@ ui =
     else []
 
 
-
-eval :: forall m. Query ~> HC.ComponentDSL State Query Message m
-eval = case _ of
-  (UpdateInputText text next) -> do
-    state <- H.get
-    H.modify_ (_ { input = text })
-    when state.auto processInput
-    pure next
-  (UpdateAlphabet text next) -> do
-    state <- H.get
-    H.modify_ (_ { alphabet = text })
-    when state.auto processInput
-    pure next
-  (ProcessInput next) -> do
-    processInput
-    pure next
-  (ToggleAuto status next) -> do
-    H.modify_ (_ { auto = status })
-    when status processInput
-    pure next
-  (ToggleAdaptive status next) -> do
-    H.modify_ (_ { adaptive = status })
-    processInput
-    pure next
-  where
-    processInput = do
-      H.modify_ (_ { initialized = true })
-      { input, alphabet, adaptive } <- H.get
-      let alphabet' = wrap $ A.nub $ toCodePointArray alphabet
-          input' = wrap $ toCodePointArray input
-          isValid = all (flip elem alphabet') input'
-          adapt = if adaptive then increaseWeight else noAdaptation
-      if isValid then do
-        let focus = mkFocus alphabet'
-            result :: Big
-            result = fromMaybe zero $ fromString $ show $
-              average $ encodeWithFocus adapt focus input'
-            steps = unsafePartial $ decodeSteps adapt isEnd result focus
-            success :: Boolean
-            success = A.fromFoldable (map _.result steps) == input'
-        H.modify_ (_ { result = Just result, steps = steps, success = success })
-        else do
-        H.modify_ (_ { result = Nothing, steps = Nil })
+  eval :: Query ~> HC.ComponentDSL State Query Message Aff
+  eval = case _ of
+    (UpdateInputText text next) -> do
+      state <- H.get
+      H.modify_ (_ { input = text })
+      when state.auto processInput
+      pure next
+    (UpdateAlphabet text next) -> do
+      state <- H.get
+      H.modify_ (_ { alphabet = text })
+      when state.auto processInput
+      pure next
+    (ProcessInput next) -> do
+      processInput
+      pure next
+    (ToggleAuto status next) -> do
+      H.modify_ (_ { auto = status })
+      when status processInput
+      pure next
+    (ToggleAdaptive status next) -> do
+      H.modify_ (_ { adaptive = status })
+      processInput
+      pure next
+    where
+      processInput = do
+        H.modify_ (_ { initialized = true })
+        { input, alphabet, adaptive } <- H.get
+        let alphabet' = wrap $ A.nub $ toCodePointArray alphabet
+            input' = wrap $ toCodePointArray input
+            isValid = all (flip elem alphabet') input'
+            adapt = if adaptive then increaseWeight else noAdaptation
+        if isValid then do
+          let focus = mkFocus alphabet'
+              result :: Big
+              result = fromMaybe zero $ fromString $ show $
+                average $ encodeWithFocus adapt focus input'
+              steps = unsafePartial $ decodeSteps adapt isEnd result focus
+              success :: Boolean
+              success = A.fromFoldable (map _.result steps) == input'
+          H.modify_ (_ { result = Just result, steps = steps, success = success })
+          else do
+          H.modify_ (_ { result = Nothing, steps = Nil })
