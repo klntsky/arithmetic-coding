@@ -1,0 +1,20 @@
+{
+  "name": "arithmetic-coding-app",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {
+    "purescript-assert": "^4.0.0",
+    "purescript-console": "^4.2.0",
+    "purescript-css": "^4.0.0",
+    "purescript-halogen": "^4.0.0",
+    "purescript-halogen-css": "^8.0.0",
+    "purescript-prelude": "^4.1.0",
+    "purescript-psci-support": "^4.0.0",
+    "purescript-decimals": "^4.0.0"
+  },
+  "devDependencies": {}
+}
