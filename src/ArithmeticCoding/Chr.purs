@@ -13,18 +13,15 @@ module ArithmeticCoding.Chr
        )
 where
 
-import Data.Eq (class Eq)
-import Data.Ord (class Ord, compare)
-import Data.Ordering (Ordering (..))
-import Data.Show (class Show, show)
-import Data.Semigroup (class Semigroup, (<>))
 import Control.Applicative (class Applicative, pure)
-import Data.Functor (class Functor, map)
-import Data.Monoid (class Monoid, mempty)
+import Data.Eq (class Eq)
 import Data.Foldable (class Foldable, foldMap)
-import Data.Maybe (Maybe)
-import Data.Tuple (Tuple)
-
+import Data.Functor (map)
+import Data.Monoid (class Monoid, mempty)
+import Data.Ord (class Ord, compare)
+import Data.Ordering (Ordering(..))
+import Data.Semigroup (class Semigroup, (<>))
+import Data.Show (class Show, show)
 
 data Chr a = Chr a | End
 
