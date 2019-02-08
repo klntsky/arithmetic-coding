@@ -12,6 +12,10 @@ let additions =
       mkPackage ([] : List Text)
          "https://github.com/mlang/purescript-monad-loops.git"
          "v0.5.0"
+  , js-fileio =
+      mkPackage ([] : List Text)
+         "https://github.com/newlandsvalley/purescript-js-fileio.git"
+         "2.0.0"
   }
 
 in  upstream ⫽ overrides ⫽ additions

@@ -2,25 +2,29 @@ module UI where
 
 import ArithmeticCoding
 import ArithmeticCoding.Chr
+import Halogen.FileInputComponent as FI
 
-import Prelude ( type (~>), Unit, bind, const, discard, flip, map, pure, show
-               , when, zero, ($), (*), (/), (<<<), (<>), (-), (==))
-import Data.Big (Big, fromString)
+import Prelude (class Eq, class Ord, type (~>), Unit, bind, const, discard, flip, join, map, pure, show, unit, when, zero, ($), (*), (-), (/), (<#>), (<<<), (<>), (==), (>=>), (>>=))
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
 import Data.Array as A
+import Data.Big (Big, fromString)
 import Data.Int (toNumber)
-import Data.List  (List(..), all, elem)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.List (List(..), all, elem)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.String (CodePoint, toCodePointArray)
 import Data.String.CodePoints as CP
+import Effect.Aff (Aff)
 import Halogen as H
-import Halogen.Component as HC
 import Halogen.HTML as HH
 import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
-import Effect.Aff
+import Data.MediaType (MediaType(..))
+import Data.Argonaut.Parser (jsonParser)
+import Data.Argonaut.Core as AC
+import Data.Either (hush)
+import Foreign.Object (lookup)
 
 
 type State = { input :: String
@@ -39,13 +43,20 @@ data Query a
   | ProcessInput a
   | ToggleAuto Boolean a
   | ToggleAdaptive Boolean a
+  | UpdateFileInput FI.Message a
+
+
+data Slot = FileInputSlot
+
+derive instance eqSlot :: Eq Slot
+derive instance ordSlot :: Ord Slot
 
 
 type Message = Unit
 
-ui :: H.Component HH.HTML Query Unit Message Aff
-ui =
-  H.component
+
+ui :: H.Component HH.HTML Query Unit Unit Aff
+ui = H.parentComponent
     { initialState: const initialState
     , render
     , eval
@@ -63,7 +74,7 @@ ui =
                  , adaptive: false
                  , initialized: false }
 
-  render :: State -> H.ComponentHTML Query
+  render :: State -> H.ParentHTML Query FI.Query Slot Aff
   render { input, alphabet, result, success, steps, initialized } =
     HH.div_ $
     [ HH.text "Alphabet:"
@@ -78,6 +89,15 @@ ui =
     , HH.br_
 
     , HH.text "Input:"
+    , HH.slot FileInputSlot
+              (FI.component { componentId: "fileinput"
+                            , isBinary: false
+                            , prompt: "(or load from file)"
+                            , accept: MediaType ".txt"
+                            })
+              unit
+              (HE.input UpdateFileInput)
+
     , HH.br_
     , HH.textarea
       [ HP.value input
@@ -85,6 +105,7 @@ ui =
       , HP.id_ "input"
       , HE.onValueInput $ HE.input UpdateInputText
       ]
+
     , HH.br_
 
     , HH.button
@@ -182,8 +203,15 @@ ui =
     else []
 
 
-  eval :: Query ~> HC.ComponentDSL State Query Message Aff
+  eval :: Query ~> H.ParentDSL State Query FI.Query Slot Message Aff
   eval = case _ of
+    (UpdateFileInput (FI.FileLoaded { contents, name }) next) -> do
+      maybe (pure unit)
+            (\{ input, alphabet } -> do
+              H.modify_ (_ { input = input, alphabet = alphabet })
+              processInput)
+            (parse contents)
+      pure next
     (UpdateInputText text next) -> do
       state <- H.get
       H.modify_ (_ { input = text })
@@ -206,6 +234,16 @@ ui =
       processInput
       pure next
     where
+      parse :: String -> Maybe { input :: String, alphabet :: String }
+      parse str = do
+        json <- hush (jsonParser str)
+        obj <- AC.toObject json
+        -- lookup key and convert to string inside Maybe
+        let getStrKey key = lookup key >=> AC.toString
+        input    <- getStrKey "input" obj
+        alphabet <- getStrKey "alphabet" obj
+        pure { input, alphabet }
+
       processInput = do
         H.modify_ (_ { initialized = true })
         { input, alphabet, adaptive } <- H.get

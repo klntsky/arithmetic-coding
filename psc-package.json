@@ -3,14 +3,16 @@
   "set": "local",
   "source": "",
   "depends": [
+    "argonaut-core",
     "assert",
     "console",
     "css",
     "decimals",
+    "exceptions",
     "halogen",
     "halogen-css",
+    "js-fileio",
     "prelude",
-    "psci-support",
-    "decimals"
+    "psci-support"
   ]
 }
