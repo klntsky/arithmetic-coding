@@ -6,8 +6,9 @@ import FileSaver
 import Halogen.FileInputComponent as FI
 
 import CSS (backgroundColor, color, grey, marginLeft, px, rgba, width)
-import Data.Argonaut.Core (fromObject, toObject, stringify)
+import Data.Argonaut.Core (fromObject, stringify)
 import Data.Argonaut.Core as AC
+import Data.Argonaut.Decode (decodeJson)
 import Data.Argonaut.Parser (jsonParser)
 import Data.Array as A
 import Data.Big (Big, fromString)
@@ -18,11 +19,10 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.MediaType (MediaType(..))
 import Data.String (CodePoint, fromCodePointArray, toCodePointArray)
 import Data.String.CodePoints as CP
-import Data.Tuple (Tuple (..))
+import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import Foreign.Object (lookup)
 import Foreign.Object as StrMap
 import Halogen as H
 import Halogen.HTML as HH
@@ -30,7 +30,7 @@ import Halogen.HTML.CSS as CSS
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Partial.Unsafe (unsafePartial)
-import Prelude (class Eq, class Ord, type (~>), Unit, bind, const, discard, flip, map, pure, show, unit, when, zero, ($), (*), (-), (/), (<<<), (<>), (==), (>=>))
+import Prelude (class Eq, class Ord, type (~>), Unit, bind, const, discard, flip, map, pure, show, unit, when, zero, ($), (*), (-), (/), (<<<), (>>>), (<>), (==), (>=>))
 
 
 type State = { input :: String
@@ -82,7 +82,7 @@ ui = H.parentComponent
                  , initialized: false }
 
   render :: State -> H.ParentHTML Query FI.Query Slot Aff
-  render { input, alphabet, result, success, steps, initialized } =
+  render { input, adaptive, alphabet, result, success, steps, initialized } =
     HH.div_ $
     [ HH.text "Alphabet:"
     , HH.br_
@@ -126,7 +126,7 @@ ui = H.parentComponent
     , HH.span
       [ HP.title "Rebalance weights to promote characters that appear more frequently than the others"  ]
       [ HH.input [ HP.type_ HP.InputCheckbox
-                 , HP.checked false
+                 , HP.checked adaptive
                  , HE.onChecked $ HE.input ToggleAdaptive
                  , HP.id_ "adaptive" ]
       , HH.label [ HP.for "adaptive" ] [ HH.text "Adaptive" ]
@@ -284,16 +284,7 @@ ui = H.parentComponent
       parse :: String -> Maybe { output :: String
                                , alphabet :: String
                                , adaptive :: Boolean }
-      parse str = do
-        json <- hush (jsonParser str)
-        obj <- toObject json
-        -- lookup key and convert inside Maybe
-        let getStrKey     key = lookup key >=> AC.toString
-            getBooleanKey key = lookup key >=> AC.toBoolean
-        output   <- getStrKey "output"   obj
-        alphabet <- getStrKey "alphabet" obj
-        adaptive <- getBooleanKey "adaptive" obj
-        pure { output, alphabet, adaptive }
+      parse = (jsonParser >=> decodeJson) >>> hush
 
       processInput = do
         H.modify_ (_ { initialized = true })

@@ -17,7 +17,8 @@
     "purescript-decimals": "^4.0.0",
     "purescript-js-fileio": "https://github.com/newlandsvalley/purescript-js-fileio.git#2.0.0",
     "purescript-argonaut-core": "^4.0.1",
-    "purescript-exceptions": "^4.0.0"
+    "purescript-exceptions": "^4.0.0",
+    "purescript-argonaut-codecs": "^5.1.2"
   },
   "devDependencies": {
     "file-saver": "^2.0.0"

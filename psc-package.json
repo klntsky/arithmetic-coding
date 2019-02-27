@@ -3,6 +3,7 @@
   "set": "local",
   "source": "",
   "depends": [
+    "argonaut-codecs",
     "argonaut-core",
     "assert",
     "console",
